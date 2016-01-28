@@ -2,90 +2,76 @@
 
 var benchmark = require('vdom-benchmark-base');
 var xvdom = require('xvdom');
-xvdom = window.xvdom || xvdom;
+var render = xvdom.render;
+var rerender = xvdom.rerender;
+var createDynamic = xvdom.createDynamic;
 
 var NAME = 'xvdom';
 var VERSION = '0.0.1-alpha';
-var createDynamic = xvdom.createDynamic;
-var renderInstance = xvdom.renderInstance;
-var rerender = xvdom.rerender;
 
 var _xvdomSpec2 = {
   c: function(inst) {
     var _n = document.createElement("span");
 
-    _n.appendChild(createDynamic(inst.b, inst, "c", "d"));
+    _n.appendChild(createDynamic(true, _n, inst.b, inst, "c", "d"));
 
     return _n;
   },
   u: function(inst, pInst) {
     if (inst.b !== pInst.b) {
-      pInst.c(inst.b, pInst.b, pInst.d, pInst, "c", "d");
-      pInst.b = inst.b;
+      pInst.b = pInst.c(true, inst.b, pInst.b, pInst.d, pInst, "c", "d");
     }
   },
-  recycled: []
+  r: {}
 };
 
 var _xvdomSpec = {
   c: function(inst) {
     var _n = document.createElement("div");
 
-    _n.appendChild(createDynamic(inst.b, inst, "c", "d"));
+    _n.appendChild(createDynamic(true, _n, inst.b, inst, "c", "d"));
 
     return _n;
   },
   u: function(inst, pInst) {
     if (inst.b !== pInst.b) {
-      pInst.c(inst.b, pInst.b, pInst.d, pInst, "c", "d");
-      pInst.b = inst.b;
+      pInst.b = pInst.c(true, inst.b, pInst.b, pInst.d, pInst, "c", "d");
     }
   },
-  recycled: []
+  r: {}
 };
 
 function renderChildren(nodes) {
-  var children = [];
-  var i;
-  var n;
+  var length = nodes.length;
+  var children = new Array(length);
+  var i = 0;
+  var n, key;
 
-  for (i = 0; i < nodes.length; i++) {
+  while(i < length) {
     n = nodes[i];
-    if(n.children !== null) {
-      children.push({
-        $s: _xvdomSpec,
-        $n: null,
-        b: renderChildren(n.children),
-        c: null,
-        d: null,
-        key: n.key,
-        next: null
-      });
-    } else {
-      children.push({
+    key = n.key;
+    children[i++] =
+      n.children ? renderRoot(n.children, key) : {
         $s: _xvdomSpec2,
         $n: null,
-        b: "" + n.key,
+        b: key,
         c: null,
         d: null,
-        key: n.key,
-        next: null
-      });
-    }
+        key: key
+      };
   }
 
   return children;
 }
 
-function renderRoot(children){
+function renderRoot(children, key){
   return {
     $s: _xvdomSpec,
     $n: null,
     b: renderChildren(children),
     c: null,
     d: null,
-    key: null,
-    next: null
+    key: key
   };
 }
 
@@ -105,12 +91,12 @@ BenchmarkImpl.prototype.tearDown = function() {
 };
 
 BenchmarkImpl.prototype.render = function() {
-  renderedNode = renderInstance(renderRoot(this.a));
+  renderedNode = render(renderRoot(this.a, 0));
   this.container.appendChild(renderedNode);
 };
 
 BenchmarkImpl.prototype.update = function() {
-  rerender(renderedNode, renderRoot(this.b));
+  rerender(renderedNode, renderRoot(this.b, 0));
 };
 
 document.addEventListener('DOMContentLoaded', function(e) {
